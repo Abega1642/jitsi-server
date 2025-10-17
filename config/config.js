@@ -1,33 +1,28 @@
 var config = {
     hosts: {
-        domain: "{{XMPP_DOMAIN}}",
-        muc: "conference.{{XMPP_DOMAIN}}",
-        bridge: "jitsi-videobridge.{{XMPP_DOMAIN}}",
-        focus: "focus.{{XMPP_DOMAIN}}",
+        domain: "meet.jitsi",
+        muc: "conference.meet.jitsi",
+        bridge: "jitsi-videobridge.meet.jitsi",
+        focus: "focus.meet.jitsi",
     },
 
-    bosh: "//{{PUBLIC_URL}}/http-bind",
-    websocket: "wss://{{PUBLIC_URL}}/xmpp-websocket",
+    bosh: "//jitsi-server-21kh.onrender.com/http-bind",
+    websocket: "wss://jitsi-server-21kh.onrender.com/xmpp-websocket",
+
+    openBridgeChannel: "websocket",
+    enableWebsocket: true,
 
     useStunTurn: false,
-    enableIceRestart: false,
+    enableIceRestart: true,
+    p2p: { enabled: true },
 
     disableThirdPartyRequests: true,
-    enableLayerSuspension: true,
+    enableNoAudioDetection: true,
+    resolution: 360,
 
     defaultLanguage: "en",
-    prejoinPageEnabled: false,
-
-    constraints: {
-        video: {
-            height: { ideal: 360, max: 720, min: 180 },
-        },
-    },
-
-    disableAGC: true,
-    enableNoAudioDetection: true,
-    enableSaveLogs: false,
+    prejoinPageEnabled: true,
+    startAudioOnly: false,
+    startWithAudioMuted: false,
+    startWithVideoMuted: false,
 };
-
-config.iceTransportPolicy = "relay";
-config.p2p = { enabled: false };
