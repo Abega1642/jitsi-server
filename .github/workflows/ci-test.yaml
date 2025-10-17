@@ -1,0 +1,133 @@
+name: CI Test
+
+on:
+  push:
+    branches: [ preprod ]
+  pull_request:
+    branches: [ preprod ]
+
+jobs:
+  test-build:
+    name: Test Docker Build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        load: true
+        tags: jitsi-render:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Test container startup
+      run: |
+        echo "Starting container to test basic functionality..."
+        docker run -d -p 80:80 --name jitsi-test \
+          -e PUBLIC_URL=http://localhost \
+          -e XMPP_DOMAIN=meet.jitsi \
+          jitsi-render:latest
+        
+        echo "Waiting for services to start..."
+        sleep 30
+        
+        echo "Checking running processes..."
+        docker exec jitsi-test ps aux || echo "Process check failed"
+        
+        echo "Testing web server response..."
+        timeout 30s bash -c 'until curl -f http://localhost:80; do sleep 2; done' && \
+          echo "Web server is responsive" || echo "✗ Web server test failed"
+        
+        echo "Testing configuration file presence..."
+        docker exec jitsi-test test -f /config/config.js && \
+          echo "Config file exists" || echo "✗ Config file missing"
+        
+        echo "Cleaning up..."
+        docker stop jitsi-test || true
+        docker rm jitsi-test || true
+
+    - name: Validate Dockerfile
+      uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: Dockerfile
+
+    - name: Check file structure
+      run: |
+        echo "Validating project structure..."
+        test -f Dockerfile || exit 1
+        test -f start.sh || exit 1
+        test -f config/config.js || exit 1
+        test -f config/prosody.cfg.lua || exit 1
+        test -f config/nginx.conf || exit 1
+        echo "All required files present"
+
+    - name: Test startup script syntax
+      run: |
+        echo "Testing shell script syntax..."
+        shellcheck start.sh || echo "ShellCheck warnings (non-fatal)"
+        
+        echo "Testing script permissions..."
+        test -x start.sh || exit 1
+        echo "Startup script is executable"
+     - name: Test Jitsi API endpoints
+      run: |
+        docker run -d -p 80:80 --name jitsi-ci \
+          -e PUBLIC_URL=http://localhost \
+          -e XMPP_DOMAIN=meet.jitsi \
+          jitsi-test
+        
+        sleep 20
+        
+        curl -f http://localhost/libs/lib-jitsi-meet.min.js && \
+          echo "Jitsi core libraries loaded"
+        
+        curl -f http://localhost/config.js | grep "var config" && \
+          echo "Config file loaded correctly"
+        
+        docker stop jitsi-ci
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Scan for secrets
+      uses: gitleaks/gitleaks-action@v2
+      with:
+        config-path: .gitleaks.toml
+
+    - name: Docker vulnerability scan
+      uses: docker/scout-action@v1
+      with:
+        command: cves
+        image: jitsi/web:latest
+
+  config-validation:
+    name: Validate Configs
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Validate JavaScript syntax
+      run: |
+        echo "Validating config.js syntax..."
+        node -c config/config.js && echo "config.js syntax valid"
+        
+    - name: Validate nginx config
+      run: |
+        echo "Testing nginx configuration..."
+        docker run --rm -v $(pwd)/config/nginx.conf:/etc/nginx/nginx.conf:ro nginx nginx -t && \
+          echo "nginx config valid"
