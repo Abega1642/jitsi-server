@@ -1,28 +1,19 @@
 var config = {
     hosts: {
-        domain: "meet.jitsi",
-        muc: "conference.meet.jitsi",
-        bridge: "jitsi-videobridge.meet.jitsi",
-        focus: "focus.meet.jitsi",
+        domain: "{{XMPP_DOMAIN}}",
+        muc: "conference.{{XMPP_DOMAIN}}",
+        bridge: "jitsi-videobridge.{{XMPP_DOMAIN}}",
+        focus: "focus.{{XMPP_DOMAIN}}",
     },
-
-    bosh: "//jitsi-server-21kh.onrender.com/http-bind",
-    websocket: "wss://jitsi-server-21kh.onrender.com/xmpp-websocket",
-
+    bosh: "//{{PUBLIC_URL}}/http-bind",
+    websocket: "wss://{{PUBLIC_URL}}/xmpp-websocket",
     openBridgeChannel: "websocket",
     enableWebsocket: true,
-
     useStunTurn: false,
-    enableIceRestart: true,
     p2p: { enabled: true },
-
     disableThirdPartyRequests: true,
-    enableNoAudioDetection: true,
     resolution: 360,
-
     defaultLanguage: "en",
     prejoinPageEnabled: true,
-    startAudioOnly: false,
-    startWithAudioMuted: false,
-    startWithVideoMuted: false,
 };
+
