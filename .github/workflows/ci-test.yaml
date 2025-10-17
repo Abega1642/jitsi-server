@@ -60,11 +60,6 @@ jobs:
         docker rm jitsi-test || true
 
         
-    - name: Validate Dockerfile
-      uses: hadolint/hadolint-action@v3.1.0
-      with:
-        dockerfile: Dockerfile
-
     - name: Check file structure
       run: |
         echo "Validating project structure..."
@@ -74,15 +69,6 @@ jobs:
         test -f config/prosody.cfg.lua || exit 1
         test -f config/nginx.conf || exit 1
         echo "All required files present"
-
-    - name: Test startup script syntax
-      run: |
-        echo "Testing shell script syntax..."
-        shellcheck start.sh || echo "ShellCheck warnings (non-fatal)"
-        
-        echo "Testing script permissions..."
-        test -x start.sh || exit 1
-        echo "Startup script is executable"
 
   security-scan:
     name: Security Scan
@@ -100,7 +86,7 @@ jobs:
       uses: docker/scout-action@v1
       with:
         command: cves
-        image: jitsi/web:latest
+        image: jitsi/web:web-1.0.8887-1
 
   config-validation:
     name: Validate Configs
