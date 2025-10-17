@@ -23,7 +23,7 @@ jobs:
       with:
         context: .
         load: true
-        tags: jitsi-render:latest
+        tags: jitsi-test:latest
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
@@ -33,7 +33,7 @@ jobs:
         docker run -d -p 80:80 --name jitsi-test \
           -e PUBLIC_URL=http://localhost \
           -e XMPP_DOMAIN=meet.jitsi \
-          jitsi-render:latest
+          jitsi-test:latest
         
         echo "Waiting for services to start..."
         sleep 30
@@ -43,11 +43,18 @@ jobs:
         
         echo "Testing web server response..."
         timeout 30s bash -c 'until curl -f http://localhost:80; do sleep 2; done' && \
-          echo "Web server is responsive" || echo "✗ Web server test failed"
+          echo "Web server is responsive" || echo "Web server test failed"
         
         echo "Testing configuration file presence..."
         docker exec jitsi-test test -f /config/config.js && \
-          echo "Config file exists" || echo "✗ Config file missing"
+          echo "Config file exists" || echo "Config file missing"
+        
+        echo "Testing Jitsi API endpoints..."
+        curl -f http://localhost/libs/lib-jitsi-meet.min.js && \
+          echo "Jitsi core libraries loaded" || echo "Libraries failed"
+        
+        curl -f http://localhost/config.js | grep "var config" && \
+          echo "Config file loaded correctly" || echo "Config load failed"
         
         echo "Cleaning up..."
         docker stop jitsi-test || true
@@ -76,22 +83,6 @@ jobs:
         echo "Testing script permissions..."
         test -x start.sh || exit 1
         echo "Startup script is executable"
-     - name: Test Jitsi API endpoints
-      run: |
-        docker run -d -p 80:80 --name jitsi-ci \
-          -e PUBLIC_URL=http://localhost \
-          -e XMPP_DOMAIN=meet.jitsi \
-          jitsi-test
-        
-        sleep 20
-        
-        curl -f http://localhost/libs/lib-jitsi-meet.min.js && \
-          echo "Jitsi core libraries loaded"
-        
-        curl -f http://localhost/config.js | grep "var config" && \
-          echo "Config file loaded correctly"
-        
-        docker stop jitsi-ci
 
   security-scan:
     name: Security Scan
@@ -104,8 +95,6 @@ jobs:
 
     - name: Scan for secrets
       uses: gitleaks/gitleaks-action@v2
-      with:
-        config-path: .gitleaks.toml
 
     - name: Docker vulnerability scan
       uses: docker/scout-action@v1
