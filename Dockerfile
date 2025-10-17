@@ -1,11 +1,16 @@
-FROM jitsi/web:latest
+FROM jitsi/web:web-1.0.8887-1
 
-RUN apt-get update && apt-get install -y \
+RUN echo '#!/bin/sh\nexit 101' > /usr/sbin/policy-rc.d && \
+    chmod +x /usr/sbin/policy-rc.d
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
     prosody \
     jitsi-meet-prosody \
     jicofo \
     jitsi-videobridge2 \
     && rm -rf /var/lib/apt/lists/*
+
+RUN rm -f /usr/sbin/policy-rc.d
 
 COPY config/config.js /defaults/config.js
 COPY config/prosody.cfg.lua /etc/prosody/prosody.cfg.lua
